@@ -71,7 +71,7 @@ class LustreSource(object):
                            relpath(dir, source_mount)))
 
         proc = subprocess.Popen([
-            'lfs',
+#            'lfs',
             'find',
             dir,
             '-maxdepth',
@@ -150,5 +150,6 @@ def procDir(dir):
 from cmover_dirtime import procDir
 
 def get_worker_name():
-    return "cmover.%s_%s"%(current_process().initargs[1].split('@')[1],current_process().index)
+    return "cmover.%s_"%(current_process().index)
+#    return "cmover.%s_%s"%(current_process().initargs[1].split('@')[1],current_process().index)
 

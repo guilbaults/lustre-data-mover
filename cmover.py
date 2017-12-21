@@ -69,13 +69,13 @@ class LustreSource(object):
 
         cur_files = []
         proc = subprocess.Popen([
-            'lfs',
+#            'lfs',
             'find',
             dir,
             '-maxdepth',
             '1',
             '!',
-            '--type',
+            '-type',
             'd'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while True:
@@ -98,7 +98,7 @@ class LustreSource(object):
                 break
 
         proc = subprocess.Popen([
-            'lfs',
+#            'lfs',
             'find',
             dir,
             '-maxdepth',
@@ -129,7 +129,7 @@ class LustreSource(object):
 
         if not exists(destdir):
             level = len(filter(None, destdir.replace(target_mount,'').split("/")))
-            if( (not MDS_IS_STRIPED) or (level > 1) ):
+            if( (not MDS_IS_STRIPED) or (level > 5) ):
                 os.mkdir(destdir)
             else:
                 subprocess.Popen(['lfs setdirstripe -i %s %s'%(mds_num, destdir)], 
@@ -142,10 +142,10 @@ class LustreSource(object):
         if((sstat.st_uid != dstat.st_uid) or (sstat.st_gid != dstat.st_gid)):
             os.chown(destdir, sstat.st_uid, sstat.st_gid)
         
-        slayout = lustreapi.getstripe(sourcedir)
-        dlayout = lustreapi.getstripe(destdir)
-        if slayout.isstriped() != dlayout.isstriped() or slayout.stripecount != dlayout.stripecount:
-            lustreapi.setstripe(destdir, stripecount=slayout.stripecount)
+        #slayout = lustreapi.getstripe(sourcedir)
+        #dlayout = lustreapi.getstripe(destdir)
+        #if slayout.isstriped() != dlayout.isstriped() or slayout.stripecount != dlayout.stripecount:
+        #    lustreapi.setstripe(destdir, stripecount=slayout.stripecount)
 
     def copyFile(self, src, dst):
         try:
@@ -172,11 +172,11 @@ class LustreSource(object):
             # regular files
 
             if stat.S_ISREG(mode):
-                layout = lustreapi.getstripe(src)
-                if layout.stripecount < 16:
-                    count = layout.stripecount
-                else:
-                    count = -1
+#                layout = lustreapi.getstripe(src)
+#                if layout.stripecount < 16:
+#                    count = layout.stripecount
+#                else:
+#                    count = -1
 
                 done = False
                 while not done:
@@ -194,7 +194,7 @@ class LustreSource(object):
 
                             os.remove(dst)
                             #logger.warn('%s has changed' % dst)
-                        lustreapi.setstripe(dst, stripecount=count)
+ #                       lustreapi.setstripe(dst, stripecount=count)
                         done = True
                     except IOError, error:
                         if error.errno != 17:
@@ -286,12 +286,12 @@ def get_mc_conn():
 def isProperDirection(path):
     if not path.startswith(source_mount):
         raise Exception("Wrong direction param, %s not starts with %s"%(path, source_mount)) 
-    if (not ismount(source_mount)):
-       logger.error("%s not mounted"%source_mount)
-       raise Exception("%s not mounted"%source_mount) 
-    if (not ismount(target_mount)):
-       logger.error("%s not mounted"%target_mount)
-       raise Exception("%s not mounted"%target_mount) 
+    #if (not ismount(source_mount)):
+    #   logger.error("%s not mounted"%source_mount)
+    #   raise Exception("%s not mounted"%source_mount) 
+    #if (not ismount(target_mount)):
+    #   logger.error("%s not mounted"%target_mount)
+    #   raise Exception("%s not mounted"%target_mount) 
 
 def report_files_progress(copied_files, copied_data):
     if(not STATS_ENABLED):
@@ -351,4 +351,5 @@ def procFiles(files):
 from cmover import procDir, procFiles
 
 def get_worker_name():
-    return "cmover.%s_%s"%(current_process().initargs[1].split('@')[1],current_process().index)
+    return "cmover.%s_"%(current_process().index)
+#    return "cmover.%s_%s"%(current_process().initargs[1].split('@')[1],current_process().index)

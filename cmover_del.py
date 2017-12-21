@@ -224,5 +224,6 @@ def procFiles(files):
 from cmover_del import procDir, procFiles
 
 def get_worker_name():
-    return "cmover.%s_%s"%(current_process().initargs[1].split('@')[1],current_process().index)
+    return "cmover.%s_"%(current_process().index)
+#    return "cmover.%s_%s"%(current_process().initargs[1].split('@')[1],current_process().index)
 
