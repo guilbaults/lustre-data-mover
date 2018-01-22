@@ -181,6 +181,10 @@ class LustreSource(object):
                 done = False
                 while not done:
                     try:
+                        if s.st_blocks == 2048 and s.st_size != 1048576:
+                            # File is archived on tape (HSM)
+                            return # Skip this file
+
                         if exists(dst):
                             deststat = self.safestat(dst)
                             if srcstat.st_size == deststat.st_size \
