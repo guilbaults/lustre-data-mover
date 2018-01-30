@@ -188,7 +188,7 @@ class LustreSource(object):
                         if exists(dst):
                             deststat = self.safestat(dst)
                             if srcstat.st_size == deststat.st_size \
-                                and srcstat.st_mtime == deststat.st_mtime \
+                                and int(srcstat.st_mtime) == int(deststat.st_mtime) \
                                 and srcstat.st_uid == deststat.st_uid \
                                 and srcstat.st_gid == deststat.st_gid \
                                 and srcstat.st_mode == deststat.st_mode:
