@@ -68,16 +68,27 @@ class LustreSource(object):
                            relpath(dir, source_mount)), mds_num)
 
         cur_files = []
-        proc = subprocess.Popen([
-#            'lfs',
-            'find',
-            dir,
-            '-maxdepth',
-            '1',
-            '!',
-            '-type',
-            'd'],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if SOURCE_TYPE == 'Lustre':
+            proc = subprocess.Popen([
+                'lfs',
+                'find',
+                dir,
+                '-maxdepth',
+                '1',
+                '!',
+                '--type',
+                'd'],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            proc = subprocess.Popen([
+                'find',
+                dir,
+                '-maxdepth',
+                '1',
+                '!',
+                '-type',
+                'd'],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while True:
             line = proc.stdout.readline().rstrip()
             if line:
@@ -96,16 +107,25 @@ class LustreSource(object):
                 logger.error("Got error scanning %s folder: %s"%(dir, line))
             else:
                 break
-
-        proc = subprocess.Popen([
-#            'lfs',
-            'find',
-            dir,
-            '-maxdepth',
-            '1',
-            '-type',
-            'd'],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if SOURCE_TYPE == 'Lustre':
+            proc = subprocess.Popen([
+                'lfs',
+                'find',
+                dir,
+                '-maxdepth',
+                '1',
+                '--type',
+                'd'],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            proc = subprocess.Popen([
+                'find',
+                dir,
+                '-maxdepth',
+                '1',
+                '-type',
+                'd'],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cur_mds_num = 0
         while True:
             line = proc.stdout.readline().rstrip()
@@ -129,7 +149,7 @@ class LustreSource(object):
 
         if not exists(destdir):
             level = len(filter(None, destdir.replace(target_mount,'').split("/")))
-            if( (not MDS_IS_STRIPED) or (level > 5) ):
+            if( (not MDS_IS_STRIPED) or (level > MDS_STRIPED_FOLDER_DEPTH) or TARGET_TYPE != "Lustre" ):
                 os.mkdir(destdir)
             else:
                 subprocess.Popen(['lfs setdirstripe -i %s %s'%(mds_num, destdir)], 
@@ -141,11 +161,11 @@ class LustreSource(object):
             os.chmod(destdir, sstat.st_mode)
         if((sstat.st_uid != dstat.st_uid) or (sstat.st_gid != dstat.st_gid)):
             os.chown(destdir, sstat.st_uid, sstat.st_gid)
-        
-        #slayout = lustreapi.getstripe(sourcedir)
-        #dlayout = lustreapi.getstripe(destdir)
-        #if slayout.isstriped() != dlayout.isstriped() or slayout.stripecount != dlayout.stripecount:
-        #    lustreapi.setstripe(destdir, stripecount=slayout.stripecount)
+        if TARGET_TYPE == "Lustre" and SOURCE_TYPE == "Lustre": 
+            slayout = lustreapi.getstripe(sourcedir)
+            dlayout = lustreapi.getstripe(destdir)
+            if slayout.isstriped() != dlayout.isstriped() or slayout.stripecount != dlayout.stripecount:
+                lustreapi.setstripe(destdir, stripecount=slayout.stripecount)
 
     def copyFile(self, src, dst):
         try:
@@ -172,16 +192,17 @@ class LustreSource(object):
             # regular files
 
             if stat.S_ISREG(mode):
-#                layout = lustreapi.getstripe(src)
-#                if layout.stripecount < 16:
-#                    count = layout.stripecount
-#                else:
-#                    count = -1
+                if TARGET_TYPE == "Lustre" and SOURCE_TYPE == "Lustre":
+                    layout = lustreapi.getstripe(src)
+                    if layout.stripecount < 16:
+                        count = layout.stripecount
+                    else:
+                        count = -1
 
                 done = False
                 while not done:
                     try:
-                        if srcstat.st_blocks == 2048 and srcstat.st_size > 1048576:
+                        if srcstat.st_blocks == 2048 and srcstat.st_size > 1048576 and SOURCE_TYPE == "GPFS":
                             # File is archived on tape (HSM)
                             return # Skip this file
 
@@ -198,7 +219,8 @@ class LustreSource(object):
 
                             os.remove(dst)
                             #logger.warn('%s has changed' % dst)
- #                       lustreapi.setstripe(dst, stripecount=count)
+                        if TARGET_TYPE == "Lustre" and SOURCE_TYPE == "Lustre":
+                            lustreapi.setstripe(dst, stripecount=count)
                         done = True
                     except IOError, error:
                         if error.errno != 17:
@@ -290,12 +312,6 @@ def get_mc_conn():
 def isProperDirection(path):
     if not path.startswith(source_mount):
         raise Exception("Wrong direction param, %s not starts with %s"%(path, source_mount)) 
-    #if (not ismount(source_mount)):
-    #   logger.error("%s not mounted"%source_mount)
-    #   raise Exception("%s not mounted"%source_mount) 
-    #if (not ismount(target_mount)):
-    #   logger.error("%s not mounted"%target_mount)
-    #   raise Exception("%s not mounted"%target_mount) 
 
 def report_files_progress(copied_files, copied_data):
     if(not STATS_ENABLED):
@@ -355,5 +371,4 @@ def procFiles(files):
 from cmover import procDir, procFiles
 
 def get_worker_name():
-    return "cmover.%s_"%(current_process().index)
-#    return "cmover.%s_%s"%(current_process().initargs[1].split('@')[1],current_process().index)
+    return "cmover.%s_%s"%(os.uname()[1],current_process().index)

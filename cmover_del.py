@@ -71,16 +71,27 @@ class LustreSource(object):
             return
 
         cur_files = []
-        proc = subprocess.Popen([
-            'lfs',
-            'find',
-            dir,
-            '-maxdepth',
-            '1',
-            '!',
-            '--type',
-            'd'],
-            stdout=subprocess.PIPE)
+        if SOURCE_TYPE == "Lustre":
+            proc = subprocess.Popen([
+                'lfs',
+                'find',
+                dir,
+                '-maxdepth',
+                '1',
+                '!',
+                '--type',
+                'd'],
+                stdout=subprocess.PIPE)
+        else:
+            proc = subprocess.Popen([
+                'find',
+                dir,
+                '-maxdepth',
+                '1',
+                '!',
+                '-type',
+                'd'],
+                stdout=subprocess.PIPE)
         while True:
             line = proc.stdout.readline().rstrip()
             if line:
@@ -94,16 +105,25 @@ class LustreSource(object):
                     cur_files = []
                 break
         proc.communicate()
-
-        proc = subprocess.Popen([
-            'lfs',
-            'find',
-            dir,
-            '-maxdepth',
-            '1',
-            '-type',
-            'd'],
-            stdout=subprocess.PIPE)
+        if SOURCE_TYPE == "Lustre":
+            proc = subprocess.Popen([
+                'lfs',
+                'find',
+                dir,
+                '-maxdepth',
+                '1',
+                '--type',
+                'd'],
+                stdout=subprocess.PIPE)
+        else:
+            proc = subprocess.Popen([
+                'find',
+                dir,
+                '-maxdepth',
+                '1',
+                '-type',
+                'd'],
+                stdout=subprocess.PIPE)
         while True:
             line = proc.stdout.readline().rstrip()
             if line:
@@ -143,13 +163,6 @@ def get_mc_conn():
 def isProperDirection(path):
     if not path.startswith(target_mount):
         raise Exception("Wrong direction param, %s not starts with %s"%(path, target_mount)) 
-    if (not ismount(source_mount)):
-       logger.error("%s not mounted"%source_mount)
-       raise Exception("%s not mounted"%source_mount) 
-    if (not ismount(target_mount)):
-       logger.error("%s not mounted"%target_mount)
-       raise Exception("%s not mounted"%target_mount) 
-
 
 def report_files_progress(copied_files):
     if(not STATS_ENABLED):
@@ -224,6 +237,4 @@ def procFiles(files):
 from cmover_del import procDir, procFiles
 
 def get_worker_name():
-    return "cmover.%s_"%(current_process().index)
-#    return "cmover.%s_%s"%(current_process().initargs[1].split('@')[1],current_process().index)
-
+    return "cmover.%s_%s"%(os.uname()[1],current_process().index)

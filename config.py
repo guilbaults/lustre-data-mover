@@ -20,11 +20,21 @@ STATS_ENABLED = True
 # When having 2 MDS servers, we want to assign half of first-level folders to one of them and another half to another one
 MDS_IS_STRIPED = False
 
+# To load balance the MDS selection at a deeper level than /
+MDS_STRIPED_FOLDER_DEPTH = 1
+
 # Copy from
 source_mount = "/panda"
 
+# Source type: Lustre, POSIX or GPFS
+# currently POSIX == GPFS except for the HSM skipping
+SOURCE_TYPE = "POSIX"
+
 # Copy to
 target_mount = "/badger"
+
+# target type: Lustre, POSIX or GPFS
+TARGET_TYPE = "POSIX"
 
 # percent of random files to delete
 percent_to_delete = 0

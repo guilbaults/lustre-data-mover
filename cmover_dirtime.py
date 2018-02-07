@@ -70,15 +70,25 @@ class LustreSource(object):
             self.fixDir(dir, join(target_mount,
                            relpath(dir, source_mount)))
 
-        proc = subprocess.Popen([
-#            'lfs',
-            'find',
-            dir,
-            '-maxdepth',
-            '1',
-            '-type',
-            'd'],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if SOURCE_TYPE == "Lustre":
+            proc = subprocess.Popen([
+                'lfs',
+                'find',
+                dir,
+                '-maxdepth',
+                '1',
+                '-type',
+                'd'],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            proc = subprocess.Popen([
+                'find',
+                dir,
+                '-maxdepth',
+                '1',
+                '-type',
+                'd'],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while True:
             line = proc.stdout.readline().rstrip()
             if line:
@@ -128,12 +138,6 @@ def get_mc_conn():
 def isProperDirection(path):
     if not path.startswith(source_mount):
         raise Exception("Wrong direction param, %s not starts with %s"%(path, source_mount)) 
-    if (not ismount(source_mount)):
-       logger.error("%s not mounted"%source_mount)
-       raise Exception("%s not mounted"%source_mount) 
-    if (not ismount(target_mount)):
-       logger.error("%s not mounted"%target_mount)
-       raise Exception("%s not mounted"%target_mount) 
 
 @app.task(ignore_result=True)
 def procDir(dir):
@@ -150,6 +154,4 @@ def procDir(dir):
 from cmover_dirtime import procDir
 
 def get_worker_name():
-    return "cmover.%s_"%(current_process().index)
-#    return "cmover.%s_%s"%(current_process().initargs[1].split('@')[1],current_process().index)
-
+    return "cmover.%s_%s"%(os.uname()[1],current_process().index)
